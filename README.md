@@ -2,8 +2,12 @@
 
 
 
-https://github.com/user-attachments/assets/d5ffcf1d-3218-4270-acf9-fc674a862db3
+https://github.com/user-attachments/assets/f5ad07ce-38d7-4b7d-b3a3-2c4d06df2b5f
 
+
+https://github.com/dslee21314/raspberrypi_project/blob/main/demo.mov
+
+Or download to see the video.
 
 
 ##  專案簡述
@@ -63,5 +67,134 @@ RoboFlow也提供下載標註好的資料集供本地端進行訓練與部署
 將模組後方的jumper拔除，即使用trigger-echo機制
 使用以下的腳本計算距離，判斷櫃門是否打開
 ```python
+import RPi.GPIO as GPIO
+import time
 
+trigger_pin = 23
+echo_pin = 24
+
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(trigger_pin, GPIO.OUT)
+GPIO.setup(echo_pin, GPIO.IN)
+
+def send_trigger_pulse():
+    GPIO.output(trigger_pin, True)
+    time.sleep(0.01)
+    GPIO.output(trigger_pin, False)
+    
+def wait_for_echo(value, timeout):
+    count = timeout
+    while GPIO.input(echo_pin) != value and count > 0:
+        count -= 1
+
+def get_distance():
+    send_trigger_pulse()
+    wait_for_echo(True, 5000)
+    start = time.time()
+    wait_for_echo(False, 5000)
+    finish = time.time()
+    pulse_len = finish - start
+    distance_cm = pulse_len * 340 * 100 / 2
+    return distance_cm
+
+while True:
+    dist = get_distance()
+    #print(f"{GPIO.input(echo_pin)}")
+    print(f"d: {dist}")
+    time.sleep(1)
 ```
+
+其中表示每秒測一次距離。
+
+## Yolov8訓練與部署
+參考Ultralytics](https://github.com/ultralytics/ultralytics)安裝套件
+從RoboFlow下載訓練集，執行以下的程式碼訓練與驗證模型
+```python
+model = YOLO("yolov8n.pt")  # load yolo8n
+# train
+results = model.train(data="./jars/yolov8/data.yaml", epochs=3)
+# validify
+results = model.val(data="./jars/yolov8/data.yaml")
+```
+然後輸出模型
+```python
+# Export the model
+model.export(format="openvino")
+```
+也可以直接用預測函式產出預測結果
+```python
+# Export the model
+results = model.predict(source="./jars/yolov8/test/images/IMG_9986_jpg.rf.f24d9b899fb9e8318a0e08eba8651e28.jpg",save=True)
+```
+
+##  追蹤機制
+門關上時會將最後一張圖片存成靜態，再下次開門時預先讀取。
+產生出藥罐的初始位置。
+其中yolo回傳的結果中，座標資訊不是常見的float。
+
+要使用跟回傳結果隔式一樣的torch.tensor進行距離運算，才能比對到基本位置的藥罐
+```python
+def replace_nearest_point(point_list, new_point):
+  min_distance = torch.tensor(float('inf'))
+  min_index = -1
+
+  for i, point in enumerate(point_list):
+      distance = torch.sqrt((point[0] - new_point[0])**2 + (point[1] - new_point[1])**2)
+      if distance < min_distance:
+          min_distance = distance
+          min_index = i
+
+  if min_index != -1:
+      new_point_list = point_list[:] 
+      new_point_list[min_index] = new_point
+      return new_point_list, min_index
+  else:
+      return point_list, min_index
+
+bottles=[]
+
+results = model.predict(source="/content/drive/MyDrive/jars/yolov8/test/images/image.png", save=True)
+for result in results:
+  boxes = result.boxes
+  for box in boxes:
+    if box.cls == 39:
+      x_center = (box.xyxy[0][0] + box.xyxy[0][2]) / 2
+      y_center = (box.xyxy[0][1] + box.xyxy[0][3]) / 2
+      bottles.append([x_center, y_center])
+```
+
+##  計數機制
+再來在開門時擷取每幀影像，與初始時的瓶罐進行比對追蹤。
+如果瓶罐邊角移至畫面邊緣，則計數增加。
+```python
+  ret, frame = cap.read()
+
+  if ret:
+    results = model.predict(source=frame, conf=0.5)
+
+    annotated_frame = results[0].plot()
+
+    for result in results:
+      boxes = result.boxes
+      for box in boxes:
+        if box.cls == 39:    # 模型辨識到bottle的id為39
+          x_center = (box.xyxy[0][0] + box.xyxy[0][2]) / 2
+          y_center = (box.xyxy[0][1] + box.xyxy[0][3]) / 2
+          bottles, i = replace_nearest_point(bottles, [x_center, y_center])
+          edge_flag = box.xyxy[0][0] == torch.tensor(0.) or box.xyxy[0][2] == torch.tensor(1024.) or box.xyxy[0][1] == torch.tensor(0.) or box.xyxy[0][3] == torch.tensor(768.)
+          # 物件觸及邊緣
+          if edge_flag:    # 目前用hard code寫死，辨識三個藥罐
+            if i == 0:
+              bottle1_cnt += 1
+            elif i == 1:
+              bottle2_cnt += 1
+            elif i == 2:
+              bottle3_cnt += 1
+            print(f"[{bottle1_cnt}, {bottle2_cnt}, {bottle3_cnt}]")
+      cv2.putText(annotated_frame, f"Bottle1: {bottle1_cnt}, Bottle2: {bottle2_cnt}, Bottle3: {bottle3_cnt}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    out.write(annotated_frame)
+  else:
+    break
+```
+其中使用了opencv的繪製圖框與添加字樣，
