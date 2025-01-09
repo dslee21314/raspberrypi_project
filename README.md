@@ -1,6 +1,10 @@
 # raspberrypi_project 藥罐取放追蹤系統
 
-[Demo](https://github.com/dslee21314/raspberrypi_project/blob/main/result_count.mov)
+
+
+https://github.com/user-attachments/assets/d5ffcf1d-3218-4270-acf9-fc674a862db3
+
+
 
 ##  專案簡述
 使用Raspberry Pi 4B，連接PiCam相機、US-100超音波測距儀與Intel Neural Compute Stick 2，製作一個由超音波做為櫃子門開關檢測、由相機追蹤櫃子內的藥罐，經過圖像比對與路徑追蹤，判斷藥罐有無被取用，配合軟體製作排程提示，達成藥物取用的管控機制。
