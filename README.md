@@ -30,6 +30,23 @@ flowchart LR
     D --> E[Count]
     E --> F[Notify]
 ```
+
+## 硬體配置
+本專案使用零件清單：
+1. 樹莓派Raspberry Pi 4B  x1
+2. NCS2運算加速棒  x1
+3. US-100 超音波測距儀  x1
+4. Raspberry Pi Camera  x1
+5. 彩虹杜邦線   x4
+
+![S__55312671](https://github.com/user-attachments/assets/db4a5443-6ed3-4ec7-b5f6-0f372f72e49a)
+
+
+![S__55312672](https://github.com/user-attachments/assets/ba63f7b7-4516-4d3f-a08e-254040389444)
+
+![image](https://github.com/user-attachments/assets/c83090b1-d6c8-488e-b62d-9618caf9f94f)
+
+
 ### 辨識模型
 在辨識模型有三種選擇：
  * Intel OpenVINO  
