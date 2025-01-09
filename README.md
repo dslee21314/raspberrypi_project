@@ -108,7 +108,7 @@ while True:
 其中表示每秒測一次距離。
 
 ## Yolov8訓練與部署
-參考Ultralytics](https://github.com/ultralytics/ultralytics)安裝套件
+參考[Ultralytics](https://github.com/ultralytics/ultralytics)安裝套件
 從RoboFlow下載訓練集，執行以下的程式碼訓練與驗證模型
 ```python
 model = YOLO("yolov8n.pt")  # load yolo8n
@@ -167,6 +167,8 @@ for result in results:
 ##  計數機制
 再來在開門時擷取每幀影像，與初始時的瓶罐進行比對追蹤。
 如果瓶罐邊角移至畫面邊緣，則計數增加。
+其中使用了opencv的繪製圖框與添加字樣，
+若是要配合輸出，可以做成function回傳結果。
 ```python
   ret, frame = cap.read()
 
@@ -197,4 +199,23 @@ for result in results:
   else:
     break
 ```
-其中使用了opencv的繪製圖框與添加字樣，
+
+
+## 專案感想
+前期利用基本環境，執行相當順利。
+還有餘裕去分享影像辨識資源給同學。
+但就在前幾天，為了將numpy升級到yolov8進行額外的物件追蹤測試，
+誤動作將整個環境弄爆了，且備份映像檔並沒有安裝對應套件。
+導致實體demo只能做兩三個單功能的靜態展示，整個開天窗。
+這件事充分展現老師所提示的備份的重要；和業界常說的"如果東西正常，就不要去動他"
+之後重整了環境，也將API做遠端影像識別的方式改成本地預訓練的模型。
+
+
+## 參考資料
+[Ultralytics-github](https://github.com/ultralytics/ultralytics)
+[openvino_toolkit_model_zoo](https://github.com/openvinotoolkit/open_model_zoo)
+[OpenCV 3 Tracking API目标跟踪学习笔记——定义、物体跟踪常用算法、demo](https://blog.csdn.net/shujian_tianya/article/details/84558033)
+[Object Tracking using OpenCV (C++/Python)](https://learnopencv.com/object-tracking-using-opencv-cpp-python/#opencv-tracking-api)
+[Roboflow_Universe](https://universe.roboflow.com/)
+[Raspberry Pi 筆記(15)：超音波測距離](https://atceiling.blogspot.com/2014/03/raspberry-pi_18.html)
+還有其他無數stackoverflow、CSDN與各論壇的幫助
